@@ -5,6 +5,8 @@ from typing import Literal
 import enum
 
 class GoogleModel(enum.Enum):
+    GEMINI_1_5_FLASH = "gemini-1.5-flash"
+    GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
     GEMINI_2_5_FLASH = "gemini-2.5-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
@@ -29,10 +31,10 @@ class Settings(BaseSettings):
     LLM_BACKEND: Literal["ollama","gemini"] = "ollama"
 
     GOOGLE_API_KEY: str =  ""
-    GEMINI_MODEL: GoogleModel = GoogleModel.GEMINI_3_1_FLASH_LITE
+    GEMINI_MODEL: GoogleModel = GoogleModel.GEMINI_1_5_FLASH
 
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "gemma3"
+    OLLAMA_MODEL: str = "gemma3" 
 
     LLM_TEMPERATURE: float = Field(default=0.2, ge=0.0, le=1.0)
     LLM_MAX_TOKENS: int = Field(default=4096, ge=256)

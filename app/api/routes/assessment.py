@@ -211,7 +211,7 @@ async def chat_assessment(
             # Update assessment status in background
             assessment = await storage.get_assessment_by_thread(payload.thread_id)
             if assessment:
-                from app.db.models.models import AssessmentStatus
+                from app.schemas.assessment import AssessmentStatus
                 await storage.update_assessment(
                     assessment["id"],
                     status=AssessmentStatus.completed,
@@ -225,42 +225,32 @@ async def chat_assessment(
 
 async def _wait_for_assessment_ready_state(graph, config: dict) -> dict:
     """
-    Poll the graph state until skill extraction is complete AND 
-    the assessor has asked the first question.
+    Check the graph state once. If skill extraction is complete AND 
+    the assessor has asked the first question, return values.
+    Otherwise return an empty dict or partial state (Streamlit will poll again).
     """
     from langchain_core.messages import AIMessage
-    max_attempts = 30
-    sleep_seconds = 1.0
+    
+    snapshot = await graph.aget_state(config)
+    if snapshot and getattr(snapshot, "values", None):
+        values = snapshot.values
+        messages = values.get("messages", [])
+        
+        # Check if we have at least one AI message that is a question
+        ai_messages = [m for m in messages if isinstance(m, AIMessage)]
+        
+        def get_content(m):
+            c = m.content if hasattr(m, "content") else str(m.get("content", ""))
+            if isinstance(c, list):
+                return "".join([p if isinstance(p, str) else p.get("text", "") for p in c])
+            return str(c)
 
-    print(f"⏳ [_wait_for_assessment_ready_state] Polling graph state for thread {config['configurable']['thread_id']}")
-    for i in range(max_attempts):
-        snapshot = await graph.aget_state(config)
-        if snapshot and getattr(snapshot, "values", None):
-            values = snapshot.values
-            messages = values.get("messages", [])
+        has_question = any("?" in get_content(m) for m in ai_messages)
+        
+        if len(ai_messages) >= 1 and has_question:
+            return values
             
-            # We want to wait for at least TWO AIMessages (Intro + Question)
-            # OR one message that clearly contains a question mark.
-            ai_messages = [m for m in messages if isinstance(m, AIMessage)]
-            
-            def get_content(m):
-                c = m.content if hasattr(m, "content") else str(m.get("content", ""))
-                if isinstance(c, list):
-                    return "".join([p if isinstance(p, str) else p.get("text", "") for p in c])
-                return str(c)
-
-            has_question = any("?" in get_content(m) for m in ai_messages)
-            
-            if len(ai_messages) >= 2 or (len(ai_messages) == 1 and has_question):
-                print(f"   ✅ Graph state fully ready (msgs={len(ai_messages)}) after {i+1} attempts")
-                return values
-            
-            print(f"   ⏳ [ready_check] Partial state (msgs={len(ai_messages)}), waiting... attempt {i+1}")
-            
-        await asyncio.sleep(sleep_seconds)
-
-    print(f"   ⚠️ Graph state timeout after {max_attempts} attempts. Returning latest values.")
-    return snapshot.values if snapshot and snapshot.values else {}
+    return {}
 
 
 async def _run_skill_extraction(

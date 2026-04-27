@@ -64,7 +64,7 @@ def _build_gemini(temperature: float, max_tokens: int, streaming: bool) -> BaseC
         max_output_tokens=max_tokens,
         streaming=streaming,
         convert_system_message_to_human=True,
-        max_retries=3, # Add retries for transient 429s
+        max_retries=10, # Increased for demo stability against transient 503s
     )
 
 

@@ -1,60 +1,63 @@
-# 🎯 AI Skill Agent: Production Setup
+# 🎯 AI Skill Assessment Agent (Minimalist Edition)
 
-A conversational AI agent that assesses candidate skills from a resume against a job description and generates a personalized learning plan.
+A high-performance, conversational AI agent built with **LangGraph** that verifies candidate proficiency in real-time. This version has been stripped of all legacy bloat, offering a hyper-lightweight, transient-storage architecture.
 
-## 🚀 Quick Start (Docker - Recommended)
+### ⚡ Highlights
+- **Ultra-Lightweight**: Core repository reduced from ~3.2GB to just **112 KB**.
+- **Transient Architecture**: Zero permanent database (PostgreSQL removed). Uses **Redis** for stateful sessions and **ChromaDB** for temporary runtime storage.
+- **Privacy-by-Design**: All session data and vector embeddings are cleared once the assessment is discarded.
+- **LLM Agnostic**: Seamlessly toggle between **Google Gemini** (1.5 Flash/Pro) and **Local Ollama** (Gemma 3).
 
-1. **Prerequisites**: Ensure you have [Docker](https://www.docker.com/products/docker-desktop/) installed.
-2. **Setup**: Run `./start.sh`.
-3. **Configure**: Add your `GOOGLE_API_KEY` to the `.env` file created in the root.
-4. **Access**: UI at [http://localhost:8501](http://localhost:8501).
+---
+
+## 🚀 Quick Start (Docker)
+
+The fastest way to get up and running is via Docker Compose:
+
+1. **Prerequisites**: [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed.
+2. **Environment**: Add your `GOOGLE_API_KEY` to the `.env` file (or set `LLM_BACKEND=ollama`).
+3. **Launch**:
+   ```bash
+   docker compose up -d --build
+   ```
+4. **Access**:
+   - **Frontend (UI)**: [http://localhost:8501](http://localhost:8501)
+   - **Backend (API)**: [http://localhost:8000](http://localhost:8000)
+   - **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 🛠️ Manual Setup (Fallback)
+## 🛠️ Stack & Optimization
 
-If Docker builds are too slow (e.g., due to heavy ML libraries), you can run the services natively:
-
-1. **Start Infrastructure**:
-   ```bash
-   # Starts only Postgres and Redis
-   docker compose up -d postgres redis
-   ```
-2. **Setup Virtual Env**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-3. **Configure**:
-   ```bash
-   cp .env.example .env
-   # Update GOOGLE_API_KEY and set:
-   # DATABASE_URL=postgresql+asyncpg://skillagent:skillagent@localhost:5432/skillagentdb
-   # REDIS_URL=redis://localhost:6379
-   ```
-4. **Run Services**:
-   - **Backend**: `uvicorn main:app --reload`
-   - **Frontend**: `streamlit run app/ui/streamlit_app.py`
-
-## 🔌 Access Points
-
-- **Frontend (UI)**: [http://localhost:8501](http://localhost:8501)
-- **Backend (API)**: [http://localhost:8000](http://localhost:8000)
-- **API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
-
-## 💡 Key Notes
-
-- **Model Compatibility**: Currently optimized for the **Gemini 2.0/3.1** series (via Google AI Studio) to provide a high-quality free tier experience.
-- **Infrastructure**: The system automatically spins up **PostgreSQL** (data storage), **Redis** (session persistence), **ChromaDB** (vector search), and the dual-service application.
-- **Anonymous Assessments**: You can start an assessment directly with a Job Description without registering personal details.
-
-## 🛠️ Maintenance
-
-- **Stop the app**: `docker compose down`
-- **View logs**: `docker compose logs -f`
-- **Rebuild**: `./start.sh` (handles dependency updates automatically)
+- **Orchestration**: [LangGraph](https://github.com/langchain-ai/langgraph) for stateful multi-agent workflows.
+- **API**: FastAPI (Python 3.10-slim base images).
+- **UI**: Streamlit for a responsive, real-time chat experience.
+- **Memory**: Redis (via `langgraph-checkpoint-redis`) for conversational state management.
+- **Vector DB**: ChromaDB for semantic resume parsing and retrieval.
 
 ---
-*Built with LangGraph, FastAPI, and Streamlit.*
-git@github.com:USERNAME/REPO.git
+
+## 🔧 Troubleshooting & Model Fallback
+
+If you encounter `503 UNAVAILABLE` or "High Demand" errors during your demo:
+1. **Switch Model**: Open `app/core/config.py` and change `GEMINI_MODEL` to a different option in the `GoogleModel` enum (e.g., switch from `Pro` to `Flash`).
+2. **Restart**: Run `docker compose restart backend` to apply the change.
+3. **Local Fail-safe**: If the internet is unstable or Gemini is down, set `LLM_BACKEND=ollama` in your `.env` to run the agent entirely on your local machine.
+
+---
+
+### Why the minimalist setup?
+By removing heavy relational databases and optimizing Docker layers, we've achieved:
+- **Instant Deployments**: Rebuilds and cold starts happen in seconds.
+- **Cleaner Git History**: The `minimal-clean` branch contains only the essential source code.
+- **Zero-Maintenance**: No database migrations or persistent volume management required.
+
+---
+
+## 💡 How to Demo
+1. **Target Skills**: Paste a Job Description; the **Skill Extractor** will identify core requirements.
+2. **Adaptive Chat**: Answer the agent's technical questions. It uses **Gemini 1.5 Pro** (default) with 10x retries for high stability.
+3. **Gap Analysis**: View your proficiency scores and a automatically generated, week-by-week **Personalized Learning Plan**.
+
+---
+*Built with ❤️ for High-Speed AI Agent Workflows.*

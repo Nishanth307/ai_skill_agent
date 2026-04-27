@@ -172,14 +172,15 @@ def render_home():
 
     # Quick API health check
     try:
-        r = httpx.get("http://localhost:8000/health", timeout=3)
+        health_url = API_BASE.replace("/api/v1", "/health")
+        r = httpx.get(health_url, timeout=3)
         if r.status_code == 200:
             data = r.json()
             st.success(f"✅ API is running | Backend: `{data.get('llm_backend', '?').upper()}`")
         else:
             st.warning("⚠️ API returned non-200")
     except Exception:
-        st.error("❌ API not reachable. Start with: `uvicorn main:app --reload`")
+        st.error(f"❌ API not reachable at {health_url}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
