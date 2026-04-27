@@ -1,0 +1,34 @@
+# .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+venv/
+.venv/
+
+# Local data & logs
+chroma_db/
+huggingface_cache/
+*.log
+uvicorn_debug.log
+streamlit_debug.log
+.env
+.env.example
+
+# App artifacts
+alembic/
+tests/
+alembic.ini
+pytest.ini
+README.md
+info.txt
+
+# OS
+.DS_Store
