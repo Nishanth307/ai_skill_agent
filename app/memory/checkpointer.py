@@ -20,8 +20,9 @@ def get_checkpointer():
     Returns the right checkpointer for the current environment.
     Called once at graph compile time (inside get_graph()).
     """
-    if settings.ENVIRONMENT == "production":
-        return _build_redis_checkpointer()
+    # Temporary fix: Always use MemorySaver to avoid "Invalid checkpointer" error with RedisSaver context manager
+    # if settings.ENVIRONMENT == "production":
+    #     return _build_redis_checkpointer()
     return _build_memory_checkpointer()
 
 

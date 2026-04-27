@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     LLM_BACKEND: Literal["ollama","gemini"] = "ollama"
 
     GOOGLE_API_KEY: str =  ""
-    GEMINI_MODEL: GoogleModel = GoogleModel.GEMINI_1_5_FLASH
+    GEMINI_MODEL: GoogleModel = GoogleModel.GEMINI_2_5_FLASH_LITE
 
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "gemma3" 
