@@ -348,15 +348,17 @@ def render_chat():
 def _fetch_opening_message():
     """
     The agent sends the first message (intro + first question).
+    The backend now waits internally, so we only need a single call.
     """
-    for _ in range(30):
+    with st.spinner("Preparing your assessment... this may take up to 30s"):
         response = api_post("/assessments/chat", {
             "thread_id": st.session_state["thread_id"],
             "message": "__init__",
         })
+        
         if response and response.get("message"):
             message = response["message"].strip()
-            # If we get a real message (not the generic "preparing" one), show it
+            # If we get a real message, show it
             if message and "preparing your" not in message.lower() and "one moment please" not in message.lower():
                 st.session_state["chat_history"].append({
                     "role": "assistant",
@@ -366,9 +368,8 @@ def _fetch_opening_message():
                 st.session_state["last_progress"] = response.get("progress")
                 st.rerun()
                 return
-        time.sleep(1)
 
-    st.info("Still setting up your assessment. Please hang tight, or try refreshing the page.")
+    st.error("Still setting up your assessment. Please try refreshing the page or check the logs.")
 
 
 def _word_stream(text: str):

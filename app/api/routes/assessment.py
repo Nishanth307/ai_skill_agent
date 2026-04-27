@@ -223,32 +223,42 @@ async def chat_assessment(
     return StreamingResponse(chat_generator(), media_type="text/plain")
 
 
-async def _wait_for_assessment_ready_state(graph, config: dict) -> dict:
+async def _wait_for_assessment_ready_state(graph, config: dict, timeout: int = 60) -> dict:
     """
-    Check the graph state once. If skill extraction is complete AND 
-    the assessor has asked the first question, return values.
-    Otherwise return an empty dict or partial state (Streamlit will poll again).
+    Internal wait loop for the graph state to be ready.
+    Eliminates the need for high-frequency client-side polling.
     """
     from langchain_core.messages import AIMessage
     
-    snapshot = await graph.aget_state(config)
-    if snapshot and getattr(snapshot, "values", None):
-        values = snapshot.values
-        messages = values.get("messages", [])
-        
-        # Check if we have at least one AI message that is a question
-        ai_messages = [m for m in messages if isinstance(m, AIMessage)]
-        
-        def get_content(m):
-            c = m.content if hasattr(m, "content") else str(m.get("content", ""))
-            if isinstance(c, list):
-                return "".join([p if isinstance(p, str) else p.get("text", "") for p in c])
-            return str(c)
+    start_time = asyncio.get_event_loop().time()
+    
+    while (asyncio.get_event_loop().time() - start_time) < timeout:
+        snapshot = await graph.aget_state(config)
+        if snapshot and getattr(snapshot, "values", None):
+            values = snapshot.values
+            messages = values.get("messages", [])
+            
+            # Check if we have at least one AI message that is a question
+            ai_messages = [m for m in messages if isinstance(m, AIMessage)]
+            
+            def get_content(m):
+                c = m.content if hasattr(m, "content") else str(m.get("content", ""))
+                if isinstance(c, list):
+                    return "".join([p if isinstance(p, str) else p.get("text", "") for p in c])
+                return str(c)
 
-        has_question = any("?" in get_content(m) for m in ai_messages)
+            has_question = any("?" in get_content(m) for m in ai_messages)
+            
+            if len(ai_messages) >= 1 and has_question:
+                return values
         
-        if len(ai_messages) >= 1 and has_question:
-            return values
+        # Check if assessment failed in storage
+        assessment = await storage.get_assessment_by_thread(config["configurable"]["thread_id"])
+        if assessment and assessment.get("status") == "failed":
+            print(f"⚠️ Assessment {assessment['id']} failed during initialization.")
+            return {}
+
+        await asyncio.sleep(0.5) # Poll every 0.5s internally
             
     return {}
 

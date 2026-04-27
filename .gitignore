@@ -28,3 +28,4 @@ redis_data/
 # System
 .DS_Store
 Thumbs.db
+.env
